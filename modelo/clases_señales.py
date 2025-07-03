@@ -4,62 +4,34 @@ import pandas as pd
 import scipy.io as sio
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
-from PyQt5.QtWidgets import QMessageBox
 
 # Diccionarios principales
 objetos_csv = {}
-objetos_mat = {}
 rutas_graficos = {}
 
 class ArchivoCSV:
-    def __init__(self, nombre, rutas_archivos):
-        self.nombre = nombre
-        self.rutas = rutas_archivos
-        self.dataframes = [pd.read_csv(ruta) for ruta in rutas_archivos]
-        self.df_recortado = None
-        self.df_promedio = None
+    def __init__(self):
+        self.df = None
 
-    def extraer_columna(self, columna, cantidad=200):
-        columnas_extraidas = []
-        for df in self.dataframes:
-            if columna in df.columns:
-                columnas_extraidas.append(df[columna].iloc[:cantidad].reset_index(drop=True))
-            else:
-                raise ValueError(f"Columna '{columna}' no encontrada en uno de los archivos.")
+    """Carga el archivo CSV desde la ruta."""
+    def cargar_csv(self, ruta):  
+        self.df = pd.read_csv(ruta)
 
-        self.df_recortado = pd.concat(columnas_extraidas, axis=1)
-        self.df_recortado.columns = [f"Archivo_{i+1}" for i in range(len(columnas_extraidas))]
-
-        nueva_ruta = f"csv_recortado_{self.nombre}.csv"
-        self.df_recortado.to_csv(nueva_ruta, index=False)
-        print(f"Archivo CSV combinado guardado como: {nueva_ruta}")
-
-    def calcular_promedio_y_graficar(self):
-        if self.df_recortado is None:
-            raise ValueError("Primero debe extraerse la columna y crear el archivo recortado.")
-
-        self.df_recortado["Promedio"] = self.df_recortado.mean(axis=1)
-
-        plt.figure(figsize=(12, 5))
-        plt.subplot(1, 2, 1)
-        plt.plot(self.df_recortado["Promedio"])
-        plt.title("Promedio de la variable")
-        plt.xlabel("Índice")
-        plt.ylabel("Promedio")
-
-        plt.subplot(1, 2, 2)
-        plt.boxplot(self.df_recortado["Promedio"])
-        plt.title("Boxplot del promedio")
-        plt.ylabel("Valor")
-
-        ruta_img = f"grafico_promedio_{self.nombre}.png"
-        plt.tight_layout()
-        plt.savefig(ruta_img)
-        plt.close()
-
-        rutas_graficos[f"csv_{self.nombre}"] = ruta_img
-        self.ruta_img = ruta_img   
-
+    """Devuelve las columnas si el DataFrame fue cargado."""
+    def obtener_columnas(self):
+        return self.df.columns if self.df is not None else []
+    
+    """Devuelve el DataFrame completo."""
+    def obtener_datos(self):
+        return self.df
+    
+    """Grafica un scatter plot en la figura proporcionada."""
+    def graficar_scatter(self, col_x, col_y, figura):
+        ax = figura.add_subplot(111)
+        ax.scatter(self.df[col_x], self.df[col_y])
+        ax.set_xlabel(col_x)
+        ax.set_ylabel(col_y)
+        ax.set_title(f"Scatter: {col_x} vs {col_y}")
 
 class ArchivoMAT:
     def __init__(self, nombre, ruta):
@@ -72,7 +44,7 @@ class ArchivoMAT:
         if self.senal.ndim == 3:
             self.senal = self.senal[:, :, 0]
 
-        # Frecuencia de muestreo fija (ajústala si varía según tus datos)
+        # Frecuencia de muestreo fija 
         self.fs = 100  # Hz
 
     def extraer_intervalo(self, ch_ini, ch_fin, t_ini, t_fin):
@@ -135,5 +107,4 @@ class ArchivoMAT:
         plt.savefig(ruta_img)
         plt.close()
 
-        rutas_graficos[f"mat_{self.nombre}"] = ruta_img
-        return ruta_img  # ← por si la vista quiere usarla
+       

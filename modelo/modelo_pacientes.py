@@ -33,7 +33,7 @@ class ModeloPacientes():
         )
         ds = pydicom.dcmread(os.path.join(carpeta_dicom, archivo))
 
-        # ⚠️ Convierte TODO a str para que SQLite no se queje
+        #  Convierte TODO a str para  SQLite
         campos = {
             "patient_id" : str(getattr(ds, "PatientID",  "")),
             "nombre"     : str(getattr(ds, "PatientName", "")),   # PersonName → str
@@ -54,7 +54,7 @@ class ModeloPacientes():
         try:
             cursor = self.conn.cursor()
             cursor.execute("""
-                SELECT id, nombre, edad, sexo, study_date, diagnostico,ruta_dicom, ruta_nifti
+                SELECT id,patient_id, nombre, edad, sexo, study_date,ruta_dicom, ruta_nifti
                 FROM pacientes
                 ORDER BY id;
             """)

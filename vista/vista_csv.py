@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (QWidget, QLabel, QPushButton, QFileDialog, QVBoxLay
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
 from matplotlib.figure import Figure
 import pandas as pd
+from modelo.clases_señales import ArchivoCSV
 
 class VistaCSV(QWidget):
     """Carga CSV, muestra tabla y permite scatter entre columnas."""
@@ -13,13 +14,14 @@ class VistaCSV(QWidget):
         self.setStyleSheet(APP_STYLESHEET)
         self.controlador = controlador
         self.setWindowTitle("Exploración CSV")
-        self.df = None
+        self.archivo_csv = ArchivoCSV()
         self._build_ui()
 
     def _build_ui(self):
         v = QVBoxLayout(self)
 
-        btn_cargar = QPushButton("Cargar CSV"); btn_cargar.clicked.connect(self.cargar_csv)
+        btn_cargar = QPushButton("Cargar CSV"); 
+        btn_cargar.clicked.connect(self.cargar_csv)
         v.addWidget(btn_cargar)
 
         # Combos para columnas X e Y
@@ -37,7 +39,8 @@ class VistaCSV(QWidget):
         self.tabla = QTableWidget(); v.addWidget(self.tabla)
 
         # Canvas matplotlib
-        self.fig = Figure(figsize=(6,4)); self.canvas = Canvas(self.fig)
+        self.fig = Figure(figsize=(6,4)); 
+        self.canvas = Canvas(self.fig)
         v.addWidget(self.canvas)
 
     # ------------------------------------------------------------------
@@ -47,13 +50,15 @@ class VistaCSV(QWidget):
         try:
             self.df = pd.read_csv(ruta)
             self.cmb_x.clear(); self.cmb_y.clear();
-            self.cmb_x.addItems(self.df.columns); self.cmb_y.addItems(self.df.columns)
+            self.cmb_x.addItems(self.df.columns); 
+            self.cmb_y.addItems(self.df.columns)
             self._poblar_tabla()
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
 
     def _poblar_tabla(self):
-        self.tabla.setRowCount(len(self.df)); self.tabla.setColumnCount(len(self.df.columns))
+        self.tabla.setRowCount(len(self.df)); 
+        self.tabla.setColumnCount(len(self.df.columns))
         self.tabla.setHorizontalHeaderLabels(self.df.columns)
         for r in range(len(self.df)):
             for c, col in enumerate(self.df.columns):

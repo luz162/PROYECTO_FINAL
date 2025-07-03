@@ -1,105 +1,168 @@
 from PyQt5.QtWidgets import (QWidget, QLabel, QPushButton, QFileDialog,
-                             QVBoxLayout, QHBoxLayout, QMessageBox)
+                             QVBoxLayout, QHBoxLayout, QMessageBox, QInputDialog,
+                             QSpinBox, )
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtCore import Qt
-import cv2
-import numpy as np
 from modelo.clases_imagenes import ImagenSimple
+import cv2
 
 class VistaImagenSimple(QWidget):
+    """Ventana de procesamiento para imágenes JPG/PNG."""
+
     def __init__(self, controlador):
         super().__init__()
-        from estilos import APP_STYLESHEET  
+        from estilos import APP_STYLESHEET
         self.setStyleSheet(APP_STYLESHEET)
         self.controlador = controlador
         self.setWindowTitle("Procesamiento de Imagen Simple")
-        self.img_obj = None       # instancia de ImagenSimple
-        self.img_mostrada = None  # np.ndarray
+        self.setMinimumSize(900, 650)
 
-        # ---------- Widgets ----------
+        self.img_obj = None          # modelo
+        self.img_proc = None         # ndarray que se muestra
+        self.img_bin = None          # último binarizado (para morfología)
+
+        self._build_ui()
+
+    def _build_ui(self):
         self.lbl = QLabel("Imagen no cargada")
         self.lbl.setAlignment(Qt.AlignCenter)
 
-        btn_cargar = QPushButton("Cargar")
-        btn_gauss = QPushButton("Filtro Gauss")
-        btn_bin = QPushButton("Binarizar")
-        btn_morf = QPushButton("Morfología")
-        btn_bordes = QPushButton("Bordes Canny")
-        btn_anota = QPushButton("Anotar")
-        btn_watershed = QPushButton("Segmentar (Watershed)")
+        # ---- SpinBox de kernel (compartido) ----
+        self.spin_kernel = QSpinBox()
+        self.spin_kernel.setRange(1, 21)
+        self.spin_kernel.setSingleStep(2)
+        self.spin_kernel.setValue(5)
+        self.spin_kernel.setPrefix("Kernel: ")
 
-        # Conexiones
-        btn_cargar.clicked.connect(self.cargar)
-        btn_gauss.clicked.connect(self.aplicar_gauss)
-        btn_bin.clicked.connect(self.aplicar_bin)
-        btn_morf.clicked.connect(self.aplicar_morf)
-        btn_bordes.clicked.connect(self.aplicar_bordes)
-        btn_anota.clicked.connect(self.aplicar_anota)
-        btn_watershed.clicked.connect(self.aplicar_watershed)
+        # ---- Botones ----
+        self.btn_cargar    = QPushButton("Cargar")
+        self.btn_color     = QPushButton("Espacio color…")
+        self.btn_eq        = QPushButton("Ecualizar")
+        self.btn_clahe     = QPushButton("CLAHE (nuevo)")
+        self.btn_bin       = QPushButton("Binarizar")
+        self.btn_apertura  = QPushButton("Apertura")
+        self.btn_cierre    = QPushButton("Cierre")
+        self.btn_contar    = QPushButton("Contar células")
 
-        # Layout
-        botones = QHBoxLayout()
-        for b in (btn_cargar, btn_gauss, btn_bin, btn_morf, btn_bordes, btn_anota, btn_watershed):
-            botones.addWidget(b)
+        # ---- Conexiones ----
+        self.btn_cargar.clicked.connect(self.cargar)
+        self.btn_color.clicked.connect(self.aplicar_color)
+        self.btn_eq.clicked.connect(self.aplicar_eq)
+        self.btn_clahe.clicked.connect(self.aplicar_clahe)
+        self.btn_bin.clicked.connect(self.aplicar_bin)
+        self.btn_apertura.clicked.connect(self.aplicar_apertura)
+        self.btn_cierre.clicked.connect(self.aplicar_cierre)
+        self.btn_contar.clicked.connect(self.aplicar_conteo)
 
+        # ---- Layout botones ----
+        fila1 = QHBoxLayout()
+        fila1.addWidget(self.btn_cargar)
+        fila1.addWidget(self.btn_color)
+        fila1.addWidget(self.btn_eq)
+        fila1.addWidget(self.btn_clahe)
+        fila1.addStretch()
+
+        fila2 = QHBoxLayout()
+        fila2.addWidget(self.btn_bin)
+        fila2.addWidget(self.btn_apertura)
+        fila2.addWidget(self.btn_cierre)
+        fila2.addWidget(self.btn_contar)
+        fila2.addWidget(self.spin_kernel)
+        fila2.addStretch()
+
+        # ---- Contenedor principal ----
         layout = QVBoxLayout(self)
         layout.addWidget(self.lbl)
-        layout.addLayout(botones)
+        layout.addLayout(fila1)
+        layout.addLayout(fila2)
 
+  
     def _mostrar(self, img):
-        if len(img.shape) == 2:
+        if img is None:
+            return
+        img = img.copy()
+        if len(img.shape) == 2:                     # gris
             h, w = img.shape
-            qimg = QImage(img.data, w, h, img.strides[0], QImage.Format_Grayscale8)
+            qimg = QImage(img.data, w, h, img.strides[0],
+                          QImage.Format_Grayscale8)
         else:
             h, w, ch = img.shape
-            bytes_per_line = ch * w
-            qimg = QImage(img.data, w, h, bytes_per_line, QImage.Format_RGB888).rgbSwapped()
-        self.lbl.setPixmap(QPixmap.fromImage(qimg).scaled(512, 512, Qt.KeepAspectRatio))
-        self.img_mostrada = img
+            qimg = QImage(img.data, w, h, ch * w,
+                          QImage.Format_RGB888).rgbSwapped()
+        self.lbl.setPixmap(QPixmap.fromImage(qimg).scaled(
+            640, 640, Qt.KeepAspectRatio))
+        self.img_proc = img
 
     def _check(self):
         if not self.img_obj:
-            QMessageBox.warning(self, "Sin imagen", "Carga una imagen primero.")
+            QMessageBox.warning(self, "Sin imagen", "Debes cargar una imagen.")
             return False
         return True
 
     def cargar(self):
-        ruta, _ = QFileDialog.getOpenFileName(self, "Seleccionar imagen", "", "Imágenes (*.png *.jpg *.jpeg)")
+        ruta, _ = QFileDialog.getOpenFileName(
+            self, "Seleccionar imagen", "", "Imágenes (*.png *.jpg *.jpeg)"
+        )
         if ruta:
             try:
                 self.img_obj = ImagenSimple(ruta)
-                self._mostrar(self.img_obj.imagen)
+                self.img_proc = self.img_obj.imagen_color.copy()
+                self.img_bin = None
+                self._mostrar(self.img_proc)
             except Exception as e:
                 QMessageBox.critical(self, "Error", str(e))
 
-    def aplicar_gauss(self):
+    # ---------- Procesos ----------
+    def aplicar_color(self):
+        if not self._check():
+            return
+        espacios = ["RGB", "HSV", "LAB", "YCrCb"]
+        espacio, ok = QInputDialog.getItem(self, "Espacio de color",
+                                           "Selecciona:", espacios, 0, False)
+        if ok and espacio:
+            self._mostrar(self.img_obj.cambiar_espacio_color(espacio))
+
+    def aplicar_eq(self):
         if self._check():
-            self._mostrar(self.img_obj.filtro_gauss())
+            self._mostrar(self.img_obj.ecualizar_histograma())
+
+    def aplicar_clahe(self):
+        if self._check():
+            self._mostrar(self.img_obj.aplicar_clahe())
 
     def aplicar_bin(self):
-        if self._check():
-            img = self.img_obj.binarizar("binario", 127)
-            self._mostrar(img)
-            self.img_bin = img
+        if not self._check():
+            return
+        umbral, ok = QInputDialog.getInt(
+            self, "Umbral fijo",
+            "Introduce un valor de 0‑255 (‑1 para Otsu):", value=127, min=-1, max=255
+        )
+        if ok:
+            metodo = "otsu" if umbral == -1 else "fijo"
+            self.img_bin = self.img_obj.binarizar(umbral=umbral, metodo=metodo)
+            self._mostrar(self.img_bin)
 
-    def aplicar_morf(self):
-        if self._check():
-            if not hasattr(self, "img_bin"):
-                QMessageBox.warning(self, "Primero binariza", "Realiza primero la binarización.")
-                return
-            self._mostrar(self.img_obj.morfologia(self.img_bin, 5, "close"))
+    def aplicar_apertura(self):
+        if not self._check() or self.img_bin is None:
+            QMessageBox.warning(self, "Falta binarizar",
+                                "Primero realiza la binarización.")
+            return
+        k = self.spin_kernel.value()
+        self._mostrar(self.img_obj.morfologia(self.img_bin, k, "apertura"))
 
-    def aplicar_bordes(self):
-        if self._check():
-            self._mostrar(self.img_obj.bordes_canny())
+    def aplicar_cierre(self):
+        if not self._check() or self.img_bin is None:
+            QMessageBox.warning(self, "Falta binarizar",
+                                "Primero realiza la binarización.")
+            return
+        k = self.spin_kernel.value()
+        self._mostrar(self.img_obj.morfologia(self.img_bin, k, "cierre"))
 
-    def aplicar_anota(self):
-        if self._check():
-            img = self.img_obj.anotar_imagen(self.img_obj.imagen, "Paciente 001", "cuadrado")
-            img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            self._mostrar(img_gray)
-
-    def aplicar_watershed(self):
-        if self._check():
-            img_seg = self.img_obj.watershed_segmentacion()
-            self._mostrar(img_seg)
+    def aplicar_conteo(self):
+        if not self._check():
+            return
+        k = self.spin_kernel.value()
+        out, n = self.img_obj.contar_celulas(k)
+        self._mostrar(out)
+        QMessageBox.information(self, "Conteo de células",
+                                f"Células detectadas: {n}")

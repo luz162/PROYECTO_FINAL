@@ -22,12 +22,13 @@ from vista.vista_nifti import VistaNifti
 from vista.vista_csv import VistaCSV
 from vista.vista_mat import VistaMAT
 from vista.vista_tabla_pacientes import VistaTablaPacientes
+from vista.vista_registro import VistaRegistro 
 
-# Vista DICOM la importamos dentro del método para evitar dependencias circulares
+# Vista DICOM la importamos dentro del método
 
 
 class ControladorPrincipal:
-    """Coordinador maestro del flujo de la aplicación (patrón Controller en MVC)."""
+    """Coordinador maestro del flujo de la aplicación  MVC."""
 
     def __init__(self):
         # Conexión y modelos
@@ -37,7 +38,7 @@ class ControladorPrincipal:
 
         # Estado
         self.usuario_actual = None
-        self.paciente_actual = None  # <–– nuevo atributo para el volumen activo
+        self.paciente_actual = None  #  atributo para el volumen 
 
         # Lanzar la primera vista (login)
         self.vista_login = VistaLogin(self)
@@ -66,7 +67,6 @@ class ControladorPrincipal:
         return self.modelo_usuarios.insertar_usuario(username, password, rol_db)
 
     def mostrar_registro(self):
-        from vista.vista_registro import VistaRegistro 
         self.vista_registro = VistaRegistro(self)
         self.vista_registro.show()
 
@@ -88,7 +88,7 @@ class ControladorPrincipal:
     # VISTAS – IMÁGENES
     # -------------------------------------------------------------------------
     def mostrar_dicom(self):
-        from vista.vista_dicom3d import VistaDICOM3D  # import tardío para evitar circular
+        from vista.vista_dicom3d import VistaDICOM3D  
         self.vista_dicom = VistaDICOM3D(self)
         self.vista_dicom.show()
 
@@ -120,3 +120,61 @@ class ControladorPrincipal:
 
     def obtener_pacientes(self):
         return self.modelo_pacientes.obtener_todos()
+    
+
+    def registrar_paciente_dicom(self, carpeta_dicom, ruta_nifti, diagnostico=""):
+        self.modelo_pacientes.insertar_dicom(carpeta_dicom, ruta_nifti, diagnostico)
+        if hasattr(self, "vista_tabla") and self.vista_tabla.isVisible():
+            self.vista_tabla.actualizar_tabla()
+    # =====================================================================
+    #  CARGA COMPLETA DE UNA CARPETA DICOM
+    # =====================================================================
+    def cargar_carpeta_dicom(self):
+        """Abre un diálogo para que el usuario elija la carpeta DICOM y genera
+        el volumen 3D que queda disponible en `self.paciente_actual`. Si la
+        operación es exitosa, muestra una notificación y actualiza la vista
+        activa (VistaDICOM3D, si está abierta)."""
+
+        carpeta = QFileDialog.getExistingDirectory(None, "Selecciona carpeta DICOM")
+        if not carpeta:
+            return  # el usuario canceló
+
+        try:
+            volumen = self._cargar_volumen_dicom(carpeta)
+            nombre_paciente = os.path.basename(carpeta)
+
+            # Crear y almacenar el paciente activo
+            self.paciente_actual = Paciente(nombre_paciente, 0, "N/A", volumen)
+
+            QMessageBox.information(None, "Éxito", f"Volumen DICOM cargado para '{nombre_paciente}'")
+
+            # Si la vista DICOM ya está abierta, refrescamos la información
+            if hasattr(self, "vista_dicom") and self.vista_dicom.isVisible():
+                self.vista_dicom.refrescar_volumen()
+
+        except Exception as exc:
+            QMessageBox.critical(None, "Error al cargar DICOM", str(exc))
+
+    # ---------------------------------------------------------------------
+    # construcción del volumen 3D a partir de archivos DICOM
+    # ---------------------------------------------------------------------
+    def _cargar_volumen_dicom(self, ruta_carpeta):
+        import pydicom
+        import numpy as np
+        import os
+
+        archivos = [f for f in os.listdir(ruta_carpeta) if f.lower().endswith('.dcm')]
+        rutas = [os.path.join(ruta_carpeta, f) for f in archivos]
+
+        slices = []
+        for path in rutas:
+            ds = pydicom.dcmread(path)
+            pixel_array = ds.pixel_array
+            instancia = getattr(ds, 'InstanceNumber', len(slices))
+            slices.append((instancia, pixel_array))
+
+        slices.sort(key=lambda x: x[0])
+
+        volumen = np.stack([s[1] for s in slices], axis=0)
+        print("Volumen cargado con shape:", volumen.shape)
+        return volumen

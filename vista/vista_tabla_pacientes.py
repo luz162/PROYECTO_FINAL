@@ -20,7 +20,7 @@ class VistaTablaPacientes(QWidget):
     def actualizar_tabla(self):
         pacientes = self.controlador.obtener_pacientes()
         self.tabla.setRowCount(len(pacientes))
-        self.tabla.setColumnCount(9)
+        self.tabla.setColumnCount(8)
         self.tabla.setHorizontalHeaderLabels([
             "ID", "Patient ID", "Nombre", "Edad", "Sexo",
             "Fecha", "Ruta DICOM", "Ruta NIfTI"

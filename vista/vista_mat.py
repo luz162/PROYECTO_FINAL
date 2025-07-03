@@ -1,4 +1,3 @@
-# ====================== V I S T A   M A T ==============================
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QPushButton, QFileDialog, QVBoxLayout, QHBoxLayout,
     QSpinBox, QDoubleSpinBox, QMessageBox, QComboBox
@@ -20,7 +19,6 @@ class VistaMAT(QWidget):
         self.mat_obj = None
         self._build_ui()
 
-    # ------------------------------------------------------------------ UI
     def _build_ui(self):
         v = QVBoxLayout(self)
 
@@ -54,7 +52,7 @@ class VistaMAT(QWidget):
         self.fig = Figure(figsize=(8, 6)); self.canvas = Canvas(self.fig)
         v.addWidget(self.canvas)
 
-    # ------------------------------------------------------------------ Slots
+    # Slots
     def cargar_archivo(self):
         ruta, _ = QFileDialog.getOpenFileName(self, "Selecciona .mat", "", "Archivos MAT (*.mat)")
         if not ruta:
