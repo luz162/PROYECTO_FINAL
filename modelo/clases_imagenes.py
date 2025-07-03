@@ -65,7 +65,7 @@ class ImagenSimple:
     # 2. Ecualización global
     # ------------------------------------------------------------------
     def ecualizar_histograma(self):
-        eq = cv2.equalizeHist(self.imagen_gray)
+        eq = cv2.equalizeHist(self.imagen_gris)
         return cv2.cvtColor(eq, cv2.COLOR_GRAY2BGR)  # devolver BGR para mostrar
 
     # ------------------------------------------------------------------
@@ -73,7 +73,7 @@ class ImagenSimple:
     # ------------------------------------------------------------------
     def aplicar_clahe(self, clip=2.0, grid=(8, 8)):
         clahe = cv2.createCLAHE(clipLimit=clip, tileGridSize=grid)
-        clahe_img = clahe.apply(self.imagen_gray)
+        clahe_img = clahe.apply(self.imagen_gris)
         return cv2.cvtColor(clahe_img, cv2.COLOR_GRAY2BGR)
 
     # ------------------------------------------------------------------
@@ -81,14 +81,14 @@ class ImagenSimple:
     # ------------------------------------------------------------------
     def binarizar(self, umbral: int = 127, metodo: str = "fijo"):
         if metodo == "otsu":
-            _, bin_img = cv2.threshold(self.imagen_gray, 0, 255,
+            _, bin_img = cv2.threshold(self.imagen_gris, 0, 255,
                                        cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         elif metodo == "adapt":
-            bin_img = cv2.adaptiveThreshold(self.imagen_gray, 255,
+            bin_img = cv2.adaptiveThreshold(self.imagen_gris, 255,
                                             cv2.ADAPTIVE_THRESH_MEAN_C,
                                             cv2.THRESH_BINARY, 11, 2)
         else:  # fijo
-            _, bin_img = cv2.threshold(self.imagen_gray, umbral, 255,
+            _, bin_img = cv2.threshold(self.imagen_gris, umbral, 255,
                                        cv2.THRESH_BINARY)
         return bin_img
 
@@ -117,6 +117,6 @@ class ImagenSimple:
                                    cv2.CHAIN_APPROX_SIMPLE)
 
         # Dibujar contornos en copia a color
-        out = cv2.cvtColor(self.imagen_gray, cv2.COLOR_GRAY2BGR)
+        out = cv2.cvtColor(self.imagen_gris, cv2.COLOR_GRAY2BGR)
         cv2.drawContours(out, cnts, -1, (0, 255, 0), 1)
         return out, len(cnts)
