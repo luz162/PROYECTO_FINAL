@@ -42,15 +42,11 @@ class Paciente:
 # ----------------------------------------------------------------------------------
 class ImagenSimple:
     def __init__(self, ruta):
-
-        """Procesamiento básico de imágenes JPG/PNG 
-        Se guarda la versión a color y en gris para distintos métodos.
-        """
         self.ruta = ruta
-        self.imagen = cv2.imread(ruta, cv2.IMREAD_GRAYSCALE)
-        if self.imagen is None:
-            raise FileNotFoundError(f"No se pudo cargar la imagen en {ruta}")
-        self.imagen_gray = cv2.cvtColor(self.imagen_color, cv2.COLOR_BGR2GRAY)
+        self.imagen_color = cv2.imread(ruta)  
+        if self.imagen_color is None:
+            raise ValueError("No se pudo cargar la imagen.")
+        self.imagen_gris = cv2.cvtColor(self.imagen_color, cv2.COLOR_BGR2GRAY)
 # ------------------------------------------------------------------
     # 1. Cambio de espacios de color
     # ------------------------------------------------------------------
