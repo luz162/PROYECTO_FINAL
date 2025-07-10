@@ -115,6 +115,7 @@ class VistaDICOM3D(QWidget):
         if not carpeta:
             return
         try:
+            self.ruta_dicom = carpeta
             self.volumen = cargar_volumen_desde_dicom(carpeta)
             QMessageBox.information(self, "Carga exitosa", "Volumen cargado.")
             self.configurar_sliders()
@@ -266,38 +267,37 @@ class VistaDICOM3D(QWidget):
         if self.volumen is None:
             QMessageBox.warning(self, "Sin volumen", "Carga primero un estudio DICOM.")
             return
-            
+
         try:
             # Seleccionar ubicación para guardar el archivo NIfTI
             archivo_salida, _ = QFileDialog.getSaveFileName(
-                self, 
-                "Guardar como NIfTI", 
-                "volumen_convertido.nii.gz", 
+                self,
+                "Guardar como NIfTI",
+                "volumen_convertido.nii.gz",
                 "Archivos NIfTI (*.nii.gz *.nii)"
             )
-            
+
             if not archivo_salida:
                 return
-            
-            # Crear imagen NIfTI
-            # nibabel espera datos en formato (x, y, z) pero nuestro volumen está en (z, y, x)
-            # Necesitamos transponer para el formato correcto
+
+            # Crear imagen NIfTI (transponer de (z, y, x) → (x, y, z))
             volumen_nifti = np.transpose(self.volumen, (2, 1, 0))
-            
-            # Crear objeto NIfTI con matriz de identidad como affine
             img_nifti = nib.Nifti1Image(volumen_nifti, affine=np.eye(4))
-            
-            # Guardar archivo
             nib.save(img_nifti, archivo_salida)
-            
+
+            # Registrar en base de datos si ruta DICOM disponible
+            if hasattr(self, "ruta_dicom"):
+                self.controlador.registrar_paciente_dicom(self.ruta_dicom, archivo_salida)
+
+            #  ACTUALIZAR TABLA DE PACIENTES SI ESTÁ ABIERTA
+            self.controlador.mostrar_tabla_pacientes()
+
             QMessageBox.information(
-                self, 
-                "Conversión exitosa", 
+                self,
+                "Conversión exitosa",
                 f"Volumen convertido y guardado en:\n{archivo_salida}"
             )
-            
+
         except Exception as exc:
             QMessageBox.critical(self, "Error en conversión", f"Error al convertir a NIfTI:\n{str(exc)}")
             import traceback; traceback.print_exc()
-
-        self.canvas3d.draw_idle()

@@ -44,3 +44,6 @@ class ModeloUsuarios:
         if fila:
             return {"usuario": fila[0], "rol": fila[1]}
         return None
+
+
+

@@ -12,13 +12,12 @@ from PyQt5.QtWidgets import QFileDialog, QMessageBox
 # Modelos
 from modelo.modelo_usuarios import ModeloUsuarios
 from modelo.modelo_pacientes import ModeloPacientes
-from modelo.clases_imagenes import Paciente
 
 # Vistas
 from vista.vista_login import VistaLogin
 from vista.vista_menu import VistaMenu
 from vista.vista_imagen_simple import VistaImagenSimple
-from vista.vista_nifti import VistaNifti
+
 from vista.vista_csv import VistaCSV
 from vista.vista_mat import VistaMAT
 from vista.vista_tabla_pacientes import VistaTablaPacientes
@@ -96,9 +95,7 @@ class ControladorPrincipal:
         self.vista_simple = VistaImagenSimple(self)
         self.vista_simple.show()
 
-    def mostrar_nifti(self):
-        self.vista_nifti = VistaNifti(self)
-        self.vista_nifti.show()
+
 
     # -------------------------------------------------------------------------
     # VISTAS – SEÑALES
@@ -115,17 +112,25 @@ class ControladorPrincipal:
     # PACIENTES
     # -------------------------------------------------------------------------
     def mostrar_tabla_pacientes(self):
-        self.vista_tabla = VistaTablaPacientes(self)
-        self.vista_tabla.show()
+        if hasattr(self, "vista_tabla") and self.vista_tabla.isVisible():
+            self.vista_tabla.actualizar_tabla()
+        else:
+            self.vista_tabla = VistaTablaPacientes(self)
+            self.vista_tabla.show()
 
     def obtener_pacientes(self):
         return self.modelo_pacientes.obtener_todos()
     
 
-    def registrar_paciente_dicom(self, carpeta_dicom, ruta_nifti, diagnostico=""):
-        self.modelo_pacientes.insertar_dicom(carpeta_dicom, ruta_nifti, diagnostico)
-        if hasattr(self, "vista_tabla") and self.vista_tabla.isVisible():
+    def registrar_paciente_dicom(self, carpeta_dicom, ruta_nifti):
+        self.modelo_pacientes.insertar_dicom(carpeta_dicom, ruta_nifti)
+        
+        # Mostrar o actualizar la vista
+        if hasattr(self, "vista_tabla"):
             self.vista_tabla.actualizar_tabla()
+            self.vista_tabla.show()
+        else:
+            self.mostrar_tabla_pacientes()   
     # =====================================================================
     #  CARGA COMPLETA DE UNA CARPETA DICOM
     # =====================================================================
@@ -144,7 +149,7 @@ class ControladorPrincipal:
             nombre_paciente = os.path.basename(carpeta)
 
             # Crear y almacenar el paciente activo
-            self.paciente_actual = Paciente(nombre_paciente, 0, "N/A", volumen)
+            self.paciente_actual = ModeloPacientes(nombre_paciente, 0, "N/A", volumen)
 
             QMessageBox.information(None, "Éxito", f"Volumen DICOM cargado para '{nombre_paciente}'")
 

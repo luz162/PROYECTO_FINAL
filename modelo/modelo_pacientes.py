@@ -25,7 +25,7 @@ class ModeloPacientes():
 
     # ---------- NUEVO ----------
 
-    def insertar_dicom(self, carpeta_dicom: str, ruta_nifti: str, diagnostico=""):
+    def insertar_dicom(self, carpeta_dicom: str, ruta_nifti: str):
         # Busca el primer archivo .dcm
         archivo = next(
             f for f in os.listdir(carpeta_dicom)

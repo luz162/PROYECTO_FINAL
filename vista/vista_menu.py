@@ -12,8 +12,7 @@ class VistaMenu(QWidget):
         if rol == "imagen":
             botones = {
                 "Ver Imágenes DICOM": self.controlador.mostrar_dicom,
-                "Ver Imágenes Simples": self.controlador.mostrar_simple,
-                "Cargar imagen NIfTI": self.controlador.mostrar_nifti,  
+                "Ver Imágenes Simples": self.controlador.mostrar_simple, 
                 "Pacientes": self.controlador.mostrar_tabla_pacientes,
             }
         elif rol == "senal":
