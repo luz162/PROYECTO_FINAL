@@ -1,5 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QMessageBox
-
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import Qt
+import os
 class VistaLogin(QWidget):
     def __init__(self, controlador):
         super().__init__()
@@ -11,6 +13,16 @@ class VistaLogin(QWidget):
 
     def _construir_ui(self):
         layout = QVBoxLayout()
+
+        # Ruta del logo
+        ruta_logo = os.path.join(os.path.dirname(__file__), "..", "logo.jpg")
+        logo = QLabel()
+        pixmap = QPixmap(ruta_logo).scaled(300,300, Qt.KeepAspectRatio)
+        logo.setPixmap(pixmap)
+        logo.setAlignment(Qt.AlignCenter)
+        layout.addWidget(logo)
+
+         # Campos de login
         self.lbl_user = QLabel("Usuario:")
         self.txt_user = QLineEdit()
         self.lbl_pass = QLabel("Contraseña:")

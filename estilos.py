@@ -17,8 +17,10 @@ QLineEdit {
     background-color: white;
     border: 1px solid #ccc;
     padding: 4px;
+    border-radius: 4px;
 }
 QLabel {
     color: #333;
+    font-weight: bold;
 }
 """

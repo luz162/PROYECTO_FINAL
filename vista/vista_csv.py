@@ -65,15 +65,26 @@ class VistaCSV(QWidget):
                 self.tabla.setItem(r, c, QTableWidgetItem(str(self.df.iloc[r, c])))
 
     def graficar_scatter(self):
-        if self.df is None:
-            QMessageBox.warning(self, "Archivo", "Carga un CSV primero")
-            return
-        col_x, col_y = self.cmb_x.currentText(), self.cmb_y.currentText()
-        if col_x == col_y:
-            QMessageBox.warning(self, "Columnas", "Elige columnas distintas para scatter")
-            return
-        self.fig.clf(); ax = self.fig.add_subplot(111)
-        ax.scatter(self.df[col_x], self.df[col_y])
-        ax.set_xlabel(col_x); ax.set_ylabel(col_y)
-        ax.set_title(f"Scatter: {col_x} vs {col_y}")
-        self.canvas.draw()
+           # Verifica si el archivo CSV fue cargado
+        try:
+            if not hasattr(self, "df"):
+                QMessageBox.warning(self, "Archivo", "Carga un CSV primero")
+                return
+            col_x, col_y = self.cmb_x.currentText(), self.cmb_y.currentText()
+            if col_x == col_y:
+                QMessageBox.warning(self, "Columnas", "Elige columnas distintas para scatter")
+                return
+            
+                    # Asegura que ambas columnas sean numéricas
+            if not pd.api.types.is_numeric_dtype(self.df[col_x]) or not pd.api.types.is_numeric_dtype(self.df[col_y]):
+                QMessageBox.warning(self, "Tipo de dato", "Las columnas seleccionadas deben ser numéricas.")
+                return
+            
+            #  grafica
+            self.fig.clf(); ax = self.fig.add_subplot(111)
+            ax.scatter(self.df[col_x], self.df[col_y])
+            ax.set_xlabel(col_x); ax.set_ylabel(col_y)
+            ax.set_title(f"Scatter: {col_x} vs {col_y}")
+            self.canvas.draw()
+        except Exception as e:
+            QMessageBox.critical(self, "Error al graficar", str(e))
