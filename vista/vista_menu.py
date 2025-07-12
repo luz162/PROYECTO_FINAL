@@ -1,5 +1,7 @@
-from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout
-
+from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QLabel
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import Qt
+import os
 class VistaMenu(QWidget):
     def __init__(self, controlador, rol):
         super().__init__()
@@ -8,6 +10,14 @@ class VistaMenu(QWidget):
         self.controlador = controlador
         self.setWindowTitle("Menú Principal")
         layout = QVBoxLayout()
+
+                        # Ruta del logo
+        ruta_logo = os.path.join(os.path.dirname(__file__), "..", "logo.jpg")
+        logo = QLabel()
+        pixmap = QPixmap(ruta_logo).scaled(300,300, Qt.KeepAspectRatio)
+        logo.setPixmap(pixmap)
+        logo.setAlignment(Qt.AlignCenter)
+        layout.addWidget(logo)
 
         if rol == "imagen":
             botones = {
